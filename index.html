@@ -1,0 +1,329 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Birthday.exe</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Silkscreen:wght@400;700&display=swap">
+<style>
+/* Layout: one terminal window that boots, then hands over to a party screen with a tappable cake. Deliberately one dark look. */
+:root {
+  --bg: #0a0f0c;
+  --panel: #101812;
+  --line: #213127;
+  --fg: #cfe8d5;
+  --dim: #6c8173;
+  --green: #5af78e;
+  --amber: #ffb454;
+  --cyan: #57c7ff;
+  --pink: #ff6ac1;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-pixel: "Silkscreen", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-inline: 16px;
+  padding-block: 20px;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+.win {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.win-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 12px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.dot:nth-child(1) { background: var(--pink); }
+.dot:nth-child(2) { background: var(--amber); }
+.dot:nth-child(3) { background: var(--green); }
+.win-title { margin-left: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#term { padding: 16px 14px; min-height: 22rem; max-height: 70vh; overflow-y: auto; overflow-wrap: anywhere; }
+.ln { margin: 0; min-height: 1.6em; white-space: pre-wrap; }
+.ok { color: var(--cyan); }
+.hi { color: var(--amber); }
+.ps { color: var(--green); }
+.dim { color: var(--dim); }
+.hash { color: var(--amber); margin-right: 10px; }
+.bar { display: inline-block; width: 12rem; max-width: 60%; height: 0.9em; background: var(--line); border-radius: 2px; vertical-align: middle; overflow: hidden; margin-right: 8px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--green); }
+.cursor::after { content: "▍"; color: var(--green); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.runbar { padding: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.btn {
+  min-height: 48px;
+  padding: 10px 20px;
+  background: var(--green);
+  color: #07110a;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.btn:active { transform: translateY(1px); }
+.runbar small { color: var(--dim); min-width: 0; }
+
+/* party screen */
+#party { max-width: 640px; margin: 0 auto; text-align: center; padding-block: 8px 32px; }
+.big { font-family: var(--font-pixel); font-weight: 700; line-height: 1.15; margin: 0; text-wrap: balance; }
+.big .row { display: block; font-size: clamp(1.8rem, 10vw, 3.4rem); letter-spacing: 0.02em; }
+.big .row.name { color: var(--amber); font-size: clamp(2.2rem, 13vw, 4.4rem); margin-top: 6px; }
+.big span.ch { display: inline-block; animation: drop 0.6s cubic-bezier(.2,1.4,.4,1) both; }
+.big .row:nth-child(1) { color: var(--green); }
+@keyframes drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.cake-wrap { margin: 28px auto 8px; width: min(78vw, 300px); background: none; border: 0; padding: 0; cursor: pointer; display: block; }
+.cake-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+.c-plate { fill: var(--line); }
+.c-bot { fill: var(--pink); }
+.c-top { fill: var(--amber); }
+.c-drip { fill: var(--bg); opacity: 0.35; }
+.c-candle { fill: var(--cyan); }
+.c-flame { fill: #ffe08a; transform-box: fill-box; transform-origin: 50% 100%; animation: flick 0.35s ease-in-out infinite alternate; transition: opacity 0.4s, transform 0.4s; }
+.c-flame:nth-of-type(2n) { animation-delay: 0.12s; }
+.blown .c-flame { opacity: 0; animation: none; transform: scale(0.2); }
+.c-name { font-family: var(--font-pixel); font-weight: 700; font-size: 17px; fill: var(--bg); }
+@keyframes flick { from { transform: scale(1, 1) rotate(-3deg); } to { transform: scale(0.9, 1.15) rotate(3deg); } }
+.hint { color: var(--dim); margin: 10px 0 0; min-height: 3em; }
+
+#card { margin: 24px auto 0; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 16px; }
+#card p { margin: 0 0 12px; }
+#card .to { color: var(--cyan); }
+#card .wish { color: var(--fg); }
+#card .pic { margin: 16px 0; padding: 0; }
+#card .pic img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
+#card .pic figcaption { margin-top: 12px; text-align: center; font-family: var(--font-pixel); font-weight: 700; font-size: clamp(1.2rem, 6vw, 1.8rem); color: var(--pink); text-wrap: balance; }
+#card .sign { color: var(--pink); font-weight: 700; }
+#card .exit { color: var(--dim); font-size: 12px; }
+#card .actions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }
+
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+@media (prefers-reduced-motion: reduce) {
+  .c-flame, .big span.ch, .cursor::after { animation: none; }
+}
+</style>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<section id="run" class="win" aria-label="Birthday terminal">
+  <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="win-title">satya@dev ~ birthday.exe</span></div>
+  <div id="term" aria-live="polite"><div class="ln"><span class="ps">$</span> ./birthday.exe --for naani</div><div class="ln dim">A birthday card from Satya. Tap run to start.</div><div class="ln cursor"></div></div>
+  <div class="runbar"><button id="runBtn" class="btn" type="button">▶ Run birthday.exe</button><small>Turn the sound off? There isn't any. Just watch.</small></div>
+</section>
+
+<section id="party" hidden>
+  <h1 class="big" id="title" aria-label="Happy Birthday Naani"></h1>
+
+  <button id="cake" class="cake-wrap" type="button" aria-label="Blow out the candles">
+    <svg viewBox="0 0 240 200" role="img" aria-hidden="true">
+      <rect class="c-plate" x="14" y="172" width="212" height="9" rx="4.5"/>
+      <rect class="c-bot" x="28" y="122" width="184" height="50" rx="6"/>
+      <rect class="c-drip" x="28" y="122" width="184" height="9" rx="4"/>
+      <rect class="c-top" x="58" y="86" width="124" height="38" rx="6"/>
+      <rect class="c-drip" x="58" y="86" width="124" height="8" rx="4"/>
+      <g id="candles"></g>
+      <text class="c-name" x="120" y="154" text-anchor="middle">NAANI</text>
+    </svg>
+  </button>
+  <p class="hint" id="hint">Make a wish, then tap the cake to blow out the candles.</p>
+
+  <div id="card" hidden>
+    <p class="to">Dear Naani,</p>
+    <p class="wish">Wishing you bug-free code, zero merge conflicts, and a life that always compiles!</p>
+    <p class="wish" id="years"></p>
+    <figure class="pic">
+      <img src="pic.jpg" alt="Cartoon of two friends at a front door, one looking shocked with an egg and a stain on his yellow shorts, the other grinning behind him covered in colorful powder" width="874" height="900">
+      <figcaption>Love u aagamm baa</figcaption>
+    </figure>
+    <p class="sign">- Satya</p>
+    <p class="exit">&gt; process exited with code 0 (friendship: permanent)</p>
+    <div class="actions"><button id="again" class="btn ghost" type="button">↻ Run again</button></div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var NAME = "Naani", FROM = "Satya", START = 2020;
+  var MEMORIES = [
+    ["a1b2c3d", START + ": first commit - met in B.Tech"],
+    ["9f8e7d6", "survived B.Tech together"],
+    ["4c5b6a7", "debugged life one bug at a time"],
+    ["e3d2c1b", "never let each other fail a viva alone"],
+    ["7a8b9c0", new Date().getFullYear() + ": still pushing to the same branch"]
+  ];
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (s) { return document.querySelector(s); };
+  var term = $("#term");
+  var running = false, blown = false, rainTimer = 0;
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, reduce ? Math.min(ms, 40) : ms); }); }
+  function down() { term.scrollTop = term.scrollHeight; }
+  function addLine(text, cls) {
+    var d = document.createElement("div");
+    d.className = "ln " + (cls || "");
+    d.textContent = text;
+    term.appendChild(d); down();
+    return d;
+  }
+  async function typeLine(text, cls, speed) {
+    var d = addLine("", cls);
+    if (reduce) { d.textContent = text; return d; }
+    for (var i = 0; i < text.length; i++) { d.textContent += text[i]; await sleep(speed || 26); }
+    return d;
+  }
+  function promptLine(cmd) {
+    var d = addLine("", "");
+    var p = document.createElement("span"); p.className = "ps"; p.textContent = "$ ";
+    d.appendChild(p);
+    var t = document.createElement("span"); d.appendChild(t);
+    return { el: d, t: t };
+  }
+  async function typeCmd(cmd) {
+    var pl = promptLine();
+    if (reduce) { pl.t.textContent = cmd; return; }
+    for (var i = 0; i < cmd.length; i++) { pl.t.textContent += cmd[i]; await sleep(32); down(); }
+  }
+
+  /* confetti */
+  var cv = $("#confetti"), ctx = cv.getContext("2d"), parts = [], raf = 0;
+  var COLS = ["#5af78e", "#ffb454", "#57c7ff", "#ff6ac1", "#f3f99d"];
+  function fit() {
+    var d = window.devicePixelRatio || 1;
+    cv.width = innerWidth * d; cv.height = innerHeight * d;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  addEventListener("resize", fit); fit();
+  function pick() { return COLS[Math.floor(Math.random() * COLS.length)]; }
+  function rain(n) {
+    for (var i = 0; i < n; i++) parts.push({ x: Math.random() * innerWidth, y: -10, vx: (Math.random() - .5) * 2, vy: Math.random() * 2 + 2, w: 6 + Math.random() * 6, h: 3 + Math.random() * 4, r: Math.random() * 6.28, vr: (Math.random() - .5) * .3, c: pick() });
+    kick();
+  }
+  function burst(x, y, n) {
+    for (var i = 0; i < n; i++) {
+      var a = -Math.PI / 2 + (Math.random() - .5) * 2.2, s = 4 + Math.random() * 9;
+      parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, w: 6 + Math.random() * 6, h: 3 + Math.random() * 4, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, c: pick() });
+    }
+    kick();
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+  function loop() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts = parts.filter(function (p) { return p.y < innerHeight + 20; });
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.vy += 0.12; p.vx *= 0.995; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    raf = parts.length ? requestAnimationFrame(loop) : 0;
+  }
+  function rainFor(ms) {
+    clearInterval(rainTimer);
+    var end = Date.now() + ms;
+    rainTimer = setInterval(function () { rain(reduce ? 4 : 10); if (Date.now() > end) clearInterval(rainTimer); }, 120);
+  }
+
+  /* party screen */
+  function buildTitle() {
+    var t = $("#title"); t.textContent = "";
+    var words = [["HAPPY", ""], ["BIRTHDAY", ""], [NAME.toUpperCase(), "name"]];
+    var n = 0;
+    words.forEach(function (w) {
+      var row = document.createElement("span"); row.className = "row " + w[1];
+      w[0].split("").forEach(function (ch) {
+        var s = document.createElement("span"); s.className = "ch"; s.textContent = ch;
+        s.style.animationDelay = (n++ * 0.06) + "s"; row.appendChild(s);
+      });
+      t.appendChild(row);
+    });
+  }
+  function buildCandles() {
+    var g = $("#candles"), xs = [80, 100, 120, 140, 160], svg = "";
+    xs.forEach(function (x) {
+      svg += '<rect class="c-candle" x="' + (x - 3) + '" y="58" width="6" height="28" rx="1.5"/>' +
+             '<ellipse class="c-flame" cx="' + x + '" cy="49" rx="4.5" ry="8"/>';
+    });
+    g.innerHTML = svg;
+  }
+  function showParty() {
+    $("#run").hidden = true; $("#party").hidden = false;
+    blown = false;
+    $("#card").hidden = true;
+    $("#cake").classList.remove("blown");
+    $("#hint").textContent = "Make a wish, then tap the cake to blow out the candles.";
+    buildTitle(); buildCandles();
+    $("#years").textContent = Math.max(1, new Date().getFullYear() - START) + " years of friendship and counting. Never stop shipping!";
+    window.scrollTo(0, 0);
+    rainFor(3500);
+  }
+  async function blowOut() {
+    if (blown) return;
+    blown = true;
+    $("#cake").classList.add("blown");
+    var r = $("#cake").getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height * 0.3, reduce ? 20 : 90);
+    $("#hint").textContent = "Wish made. Happy birthday, " + NAME + "!";
+    rainFor(2500);
+    await sleep(900);
+    var c = $("#card"); c.hidden = false;
+    c.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  }
+
+  /* the terminal run */
+  async function run() {
+    if (running) return;
+    running = true; $("#runBtn").disabled = true;
+    term.textContent = "";
+    await typeCmd("./birthday.exe --for " + NAME.toLowerCase());
+    await typeLine("> Initializing birthday.exe ...", "ps", 24);
+    var steps = ["Loading friendship modules", "Importing memories since " + START, "Compiling best wishes", "Resolving dependencies: cake, candles, confetti"];
+    for (var i = 0; i < steps.length; i++) { addLine("  [ OK ] " + steps[i], "ok"); await sleep(320); }
+    var pb = addLine("", ""); var bar = document.createElement("span"); bar.className = "bar"; var fill = document.createElement("i"); bar.appendChild(fill);
+    var pct = document.createElement("span"); pb.appendChild(bar); pb.appendChild(pct);
+    for (var p = 0; p <= 100; p += 2) { fill.style.width = p + "%"; pct.textContent = p + "%"; await sleep(22); }
+    await sleep(250);
+    await typeLine("> Build succeeded. 0 errors, 0 warnings, 1 awesome friend.", "hi", 18);
+    await sleep(900);
+    addLine("");
+    await typeCmd("git log --oneline");
+    await sleep(300);
+    for (var m = 0; m < MEMORIES.length; m++) {
+      var d = addLine("", "");
+      var h = document.createElement("span"); h.className = "hash"; h.textContent = MEMORIES[m][0];
+      d.appendChild(h); d.appendChild(document.createTextNode(MEMORIES[m][1]));
+      await sleep(650);
+    }
+    addLine("");
+    await typeCmd("git merge birthday-wishes");
+    await typeLine("Merge made by the 'ort' strategy. No conflicts. Obviously.", "", 16);
+    await sleep(1400);
+    running = false; $("#runBtn").disabled = false;
+    showParty();
+  }
+
+  $("#runBtn").addEventListener("click", run);
+  $("#cake").addEventListener("click", blowOut);
+  $("#again").addEventListener("click", function () {
+    $("#party").hidden = true; $("#run").hidden = false; window.scrollTo(0, 0); run();
+  });
+})();
+</script>
+
+</body></html>
